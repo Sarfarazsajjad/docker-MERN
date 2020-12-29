@@ -53,3 +53,40 @@ we do not need to run the frontend container connected with the network we creat
 docker hub documentation shows us where does the mongodb stores data in the container. we can just attach a named volume to that location so that the container removal doesnot effect our data
 
 `docker run -d --rm --network goals-net --name mongodb -v data:/data/db mongo`
+
+# limiting access to mongodb container instance
+
+from the official documentation on mongodb docker image here https://hub.docker.com/_/mongo we know that we can setup env variables to configure root username and password requirement.
+
+start mongodb container with MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PASSWORD env variables
+
+`docker run -d --rm --network goals-net --name mongodb -v data:/data/db -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo`
+
+`docker run -d --rm --network goals-net --name mongodb-c \
+    -v data:/data/db \
+    -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
+    -e MONGO_INITDB_ROOT_PASSWORD=secret \
+    mongo`
+
+test with the following
+
+`docker run -it --rm --network goals-net mongo \
+    mongo --host mongodb-c \
+        -u mongoadmin \
+        -p secret \
+        --authenticationDatabase admin \
+        some-db`
+
+now according to doc here https://docs.mongodb.com/manual/reference/connection-string/ we need to update backend code mongodb connection string from
+
+`mongodb://mongodb:27017/course-goals` to 
+
+`mongodb://mongoadmin:secret@mongodb-c:27017/?authSource=admin`
+
+and then rebuild image with command 
+
+`docker build . -t goals-backend-i`
+
+then start new container from backend image
+
+`docker run -dp 80:80 --rm --network goals-net --name goals-backend-c goals-backend-i`
