@@ -62,21 +62,23 @@ start mongodb container with MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PA
 
 `docker run -d --rm --network goals-net --name mongodb -v data:/data/db -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo`
 
-`docker run -d --rm --network goals-net --name mongodb-c \
-    -v data:/data/db \
-    -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
-    -e MONGO_INITDB_ROOT_PASSWORD=secret \
-    mongo`
-
+```
+docker run -d --rm --network goals-net --name mongodb-c \
+-v data:/data/db \
+-e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
+-e MONGO_INITDB_ROOT_PASSWORD=secret \
+mongo
+```
 test with the following
 
-`docker run -it --rm --network goals-net mongo \
-    mongo --host mongodb-c \
-        -u mongoadmin \
-        -p secret \
-        --authenticationDatabase admin \
-        some-db`
-
+```
+docker run -it --rm --network goals-net mongo \
+mongo --host mongodb-c \
+    -u mongoadmin \
+    -p secret \
+    --authenticationDatabase admin \
+    some-db
+```
 now according to doc here https://docs.mongodb.com/manual/reference/connection-string/ we need to update backend code mongodb connection string from
 
 `mongodb://mongodb:27017/course-goals` to 
@@ -90,3 +92,45 @@ and then rebuild image with command
 then start new container from backend image
 
 `docker run -dp 80:80 --rm --network goals-net --name goals-backend-c goals-backend-i`
+
+# improving the nodejs backend container to detect code changes, persist logs, persist npm libraries, use env variables for db connection string credentials
+
+tobe able to make changes to the code and apply into container we need to bind-mount project folder to the working directory inside container. but we also need to save node_modules folder inside container from over-writing by the bind mount. for this we will create a anonymous volume attached to the node_modules folder. then finally we will create a named volume attached with logs folder to persist the logs folder.
+
+```
+docker run -dp 80:80 --rm --network goals-net \
+-v logs:/app/logs \
+-v /app/node_modules \
+-v "$(pwd):/app" \
+--name goals-backend-c goals-backend-i
+ ```
+
+ to be able to detect live changes and restart server inside container we need to add dev dependency inside the package.json file and configure start script for npm to start server with nodemon. then finally rebuild the image to apply the changes.
+
+ ```
+ "devDependencies": {
+    "nodemon": "2.0.4"
+  }
+```
+
+```
+"scripts": {
+    "start": "nodemon app.js"
+  }
+```
+
+update Dockerfile `CMD` from `[ "node", "app.js"]` to `[ "npm", "start"]`
+
+rebuild the image
+
+`docker build . -t goals-backend-i`
+
+rerun the container
+
+```
+docker run -dp 80:80 --rm --network goals-net \
+-v logs:/app/logs \
+-v /app/node_modules \
+-v "$(pwd):/app" \
+--name goals-backend-c goals-backend-i
+ ```
