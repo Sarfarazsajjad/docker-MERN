@@ -62,7 +62,7 @@ start mongodb container with MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PA
 
 `docker run -d --rm --network goals-net --name mongodb -v data:/data/db -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo`
 
-```
+```shell
 docker run -d --rm --network goals-net --name mongodb-c \
 -v data:/data/db \
 -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
@@ -71,7 +71,7 @@ mongo
 ```
 test with the following
 
-```
+```shell
 docker run -it --rm --network goals-net mongo \
 mongo --host mongodb-c \
     -u mongoadmin \
@@ -97,7 +97,7 @@ then start new container from backend image
 
 tobe able to make changes to the code and apply into container we need to bind-mount project folder to the working directory inside container. but we also need to save node_modules folder inside container from over-writing by the bind mount. for this we will create a anonymous volume attached to the node_modules folder. then finally we will create a named volume attached with logs folder to persist the logs folder.
 
-```
+```shell
 docker run -dp 80:80 --rm --network goals-net \
 -v logs:/app/logs \
 -v /app/node_modules \
@@ -107,13 +107,13 @@ docker run -dp 80:80 --rm --network goals-net \
 
  to be able to detect live changes and restart server inside container we need to add dev dependency inside the package.json file and configure start script for npm to start server with nodemon. then finally rebuild the image to apply the changes.
 
- ```
+ ```js
  "devDependencies": {
     "nodemon": "2.0.4"
   }
 ```
 
-```
+```js
 "scripts": {
     "start": "nodemon app.js"
   }
@@ -127,10 +127,53 @@ rebuild the image
 
 rerun the container
 
-```
+```shell
 docker run -dp 80:80 --rm --network goals-net \
 -v logs:/app/logs \
 -v /app/node_modules \
 -v "$(pwd):/app" \
 --name goals-backend-c goals-backend-i
+ ```
+
+ ## setting up default environment variables in dockerfile and using in nodejs code then passing different value when running the container with the run command
+
+if we change our backend code to get db user and password from env varialbes like this
+
+```js
+let connection_str = "mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@mongodb-c:27017/?authSource=admin"
+```
+
+we can supply our container default env variable values like this in the docker file. we will have to build after this edit.
+
+```shell
+ENV MONGODB_USER=root
+ENV MONGODB_PASSWORD=password
+```
+
+we will have to rebuild image after this step.
+
+```shell
+docker build . -t goals-backend-i
+```
+
+we can supply some other values by the -e option to the run command like this
+
+```shell
+docker run -dp 80:80 --rm --network goals-net \
+-v logs:/app/logs \
+-v /app/node_modules \
+-v "$(pwd):/app" \
+-e MONGODB_USER=mongoadmin \
+-e MONGODB_PASSWORD=secret \
+--name goals-backend-c goals-backend-i
+```
+
+ # Finally using .dockerignore file to ignore few files
+
+ create a file named .dockerignore file and add the following lines
+
+ ```
+ node_modules
+ .dockerignore
+ .git
  ```
