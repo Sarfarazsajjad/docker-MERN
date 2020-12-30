@@ -177,3 +177,7 @@ docker run -dp 80:80 --rm --network goals-net \
  .dockerignore
  .git
  ```
+
+ # frontend docker image optimization
+
+ we can use the same steps above to optimize the frontend image. we do not neet to use nodemon to auto reload because that is already being handeled by react setup.
