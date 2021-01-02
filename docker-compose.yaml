@@ -1,0 +1,36 @@
+version: "3.8" # version of the Docker Compose spec which is being used
+
+services: # "Services" are in the end the Containers that your app needs
+  db:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongoadmin
+      - MONGO_INITDB_ROOT_PASSWORD=secret
+    volumes:
+      - data:/data/db
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - 80:80
+    volumes:
+      - logs:/app/logs
+      - /app/node_modules
+      - ./backend:/app
+    environment:
+      - MONGODB_USER=mongoadmin
+      - MONGODB_PASSWORD=secret
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - 3000:3000
+    tty: true
+    volumes:
+      - /app/node_modules
+      - ./frontend:/app
+
+
+volumes:
+  data:
+  logs:

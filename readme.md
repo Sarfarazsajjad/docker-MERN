@@ -63,7 +63,7 @@ start mongodb container with MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PA
 `docker run -d --rm --network goals-net --name mongodb -v data:/data/db -e MONGO_INITDB_ROOT_USERNAME=mongoadmin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo`
 
 ```shell
-docker run -d --rm --network goals-net --name mongodb-c \
+docker run -d --rm --network goals-net --name db \
 -v data:/data/db \
 -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
 -e MONGO_INITDB_ROOT_PASSWORD=secret \
@@ -73,7 +73,7 @@ test with the following
 
 ```shell
 docker run -it --rm --network goals-net mongo \
-mongo --host mongodb-c \
+mongo --host db \
     -u mongoadmin \
     -p secret \
     --authenticationDatabase admin \
@@ -83,7 +83,7 @@ now according to doc here https://docs.mongodb.com/manual/reference/connection-s
 
 `mongodb://mongodb:27017/course-goals` to 
 
-`mongodb://mongoadmin:secret@mongodb-c:27017/?authSource=admin`
+`mongodb://mongoadmin:secret@db:27017/?authSource=admin`
 
 and then rebuild image with command 
 
@@ -140,7 +140,7 @@ docker run -dp 80:80 --rm --network goals-net \
 if we change our backend code to get db user and password from env varialbes like this
 
 ```js
-let connection_str = "mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@mongodb-c:27017/?authSource=admin"
+let connection_str = "mongodb://${process.env.MONGODB_USER}:${process.env.MONGODB_PASSWORD}@db:27017/?authSource=admin"
 ```
 
 we can supply our container default env variable values like this in the docker file. we will have to build after this edit.
